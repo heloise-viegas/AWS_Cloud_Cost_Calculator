@@ -1,26 +1,20 @@
-# 🧾 AWS Billing Dashboard
+# 🧾 AWS Billing Dashboard & CloudWatch Alerts
 
-A **serverless web dashboard** that visualizes and compares **AWS billing data** week-over-week using AWS Cost Explorer, S3, and Lambda.
-The dashboard displays current weekly costs, historical comparisons, and service-wise cost breakdowns in both table and chart formats.
+A **serverless AWS billing monitoring system** that tracks, visualizes, and alerts you when cloud spending exceeds defined thresholds.  
+This project combines **AWS Lambda**, **CloudWatch**, **S3**, and **Cost Explorer** to give you a clear view of weekly costs and trends — all through an automated **dashboard** and **alerting system**.
+<img width="1903" height="926" alt="image" src="https://github.com/user-attachments/assets/bcc967b5-ec09-40c0-be5c-70090820b7c6" />
 
 ---
 
 ## 🚀 Features
 
-* **Automated Data Fetching:**
-  AWS Lambda fetches weekly cost and usage data from **Cost Explorer**.
-
-* **Dynamic Dashboard:**
-  HTML + JavaScript front-end hosted on **S3 (Static Website)** or **CloudFront**.
-
-* **Service-wise Breakdown:**
-  Displays AWS services and their corresponding costs in a scrollable table.
-
-* **Week-over-Week Comparison:**
-  Compares current week’s costs with the previous week, showing % changes.
-
-* **Auto-updating Reports:**
-  Lambda updates JSON files in S3 that the dashboard reads from dynamically.
+- **Automated Weekly Billing Reports** using AWS Cost Explorer.  
+- **Interactive Web Dashboard** hosted on S3 or CloudFront.  
+- **Service-wise Cost Breakdown** in tables and charts.  
+- **Week-over-Week Comparison** with percentage changes.  
+- **CloudWatch Alarms** that trigger when total cost exceeds threshold.  
+- **CloudWatch Dashboard** to visualize total and service-level costs.  
+- **Serverless Deployment** — no manual maintenance required.
 
 ---
 
@@ -53,31 +47,135 @@ The dashboard displays current weekly costs, historical comparisons, and service
 +----------------------+
 |  Browser Dashboard   |
 | - Visual charts      |
-| - Scrollable tables  |
-| - Weekly comparison  |
+| - Comparison tables  |
+| - Weekly insights    |
++----------+-----------+
+           |
+           v
++----------------------+
+| CloudWatch Alarm &   |
+| Dashboard Monitoring |
 +----------------------+
 ```
 
 ---
 
-## ⚙️ AWS Lambda
+## 🎯 Project Goals
 
-### **Lambda Responsibilities**
+1. **Track AWS resource costs weekly** with visual dashboards.  
+2. **Automatically alert** when total spending crosses a defined threshold.  
+3. **Create a CloudWatch dashboard** for cost visualization and alert monitoring.
 
-* Fetches weekly billing data via **Cost Explorer API** (`get_cost_and_usage`).
-* Reads previous week’s report from S3.
-* Compares the two reports and calculates:
+---
 
-  * Difference
-  * Percent change
-* Saves:
+## ⚙️ Setup Steps
 
-  * `billing_report.json` — current week’s data
-  * `comparison_report.json` — comparison results
+### **1️⃣ Enable Billing Alerts for the AWS Account**
 
-### **Environment Setup**
+Before creating alarms, you must enable billing data to appear in CloudWatch.
 
-#### IAM Permissions Required by Lamba:
+**Steps:**
+1. Sign in to the **AWS Management Console** as root or billing admin.  
+2. Go to **Billing and Cost Management → Preferences**.  
+3. Under *Cost Management Preferences*, enable:  
+   - ✅ “Receive Billing Alerts”  
+   - ✅ “Activate IAM Access”  
+4. Save changes.  
+5. Wait a few hours for billing metrics to populate in **CloudWatch → Metrics → Billing**.
+
+---
+
+### **2️⃣ Create the CloudWatch Alarm**
+
+**Goal:** Trigger an alert when the total AWS cost exceeds a defined threshold (e.g., $10).
+
+**Steps:**
+1. Go to **CloudWatch → Alarms → All alarms → Create alarm**.  
+2. Choose metric:
+   ```
+   Billing → Total Estimated Charge → USD
+   ```
+3. Set condition:
+   - Threshold type: `Static`
+   - Whenever cost **is greater than** `10`
+4. Configure actions:
+   - Create or select an **SNS topic**
+   - Add your **email address** for alerts
+5. Name the alarm, e.g., `AWSBillingThresholdExceeded`
+6. Click **Create alarm**
+<img width="1908" height="848" alt="image" src="https://github.com/user-attachments/assets/ecd07ab4-d6a4-4e87-9f5c-52cc1ce68604" />
+<img width="1377" height="422" alt="image" src="https://github.com/user-attachments/assets/e01e483c-6646-443e-89e2-48304c596173" />
+
+
+---
+
+### **3️⃣ Create a CloudWatch Dashboard**
+
+**Goal:** Display total cost and attach the alarm widget.
+
+**Steps:**
+1. Go to **CloudWatch → Dashboards → Create dashboard**
+2. Choose Billing Dashboard that is pre created and select Add.  
+3. Choose a name (e.g., `BillingDashboard`)  
+4. Add widgets:
+   - **Alarm widget:**  
+     - Add the alarm created earlier (`AWSBillingThresholdExceeded`)
+5. Save the dashboard.  
+Now you have a real-time cost visualization + alert display.
+
+---
+
+### **4️⃣ Create S3 Bucket for Website Hosting**
+
+**Steps:**
+1. Go to **S3 → Create bucket**
+   - Enable *Block all public access* → **OFF**
+   - Enable *Static website hosting*
+2. Under **Properties → Static website hosting**, choose:
+   - Hosting type: *Host a static website*
+   - Index document: `index.html`
+3. Upload:
+   - `index.html`
+   - `billing_report.json`
+   - `comparison_report.json`
+4. Copy and save the **Bucket Website URL**.
+
+---
+
+### **5️⃣ Create AWS Lambda Function**
+
+Use your custom script **`custom_billing_lambda.py`** to fetch AWS Cost Explorer data.
+
+**Lambda Responsibilities:**
+- Fetch weekly billing data via `get_cost_and_usage`
+- Compare current vs. previous week
+- Save:
+  - `billing_report.json`
+  - `comparison_report.json`
+- Upload to S3
+
+---
+
+### **6️⃣ Create the Dashboard UI**
+
+Create a responsive HTML/JS dashboard (`index.html`) that:
+- Loads JSON data from S3  
+- Displays charts
+- Contains two tables:
+  - Current week billing
+  - Week-over-week comparison
+
+---
+
+### **7️⃣ Upload the UI to S3**
+
+Upload the `index.html`, `billing_report.json`, and `comparison_report.json` files to your S3 bucket (with correct MIME types).
+
+---
+
+### **8️⃣ Assign Permissions to Lambda**
+
+Attach an IAM role with permissions:
 
 ```json
 {
@@ -91,38 +189,26 @@ The dashboard displays current weekly costs, historical comparisons, and service
 }
 ```
 
-#### Environment Variables:
-
-| Variable      | Description                           |
-| ------------- | ------------------------------------- |
-| `BUCKET_NAME` | Name of the S3 bucket hosting reports |
-
----
-### **JSON Files Used:**
-
-| File                     | Purpose                  |
-| ------------------------ | ------------------------ |
-| `billing_report.json`    | Weekly AWS billing data  |
-| `comparison_report.json` | Weekly comparison report |
-
----
-
-## 📂 S3 Folder Structure
-
+Add environment variable:
 ```
-my-billing-dashboard/
-│
-├── index.html                # Dashboard UI
-├── billing_report.json       # Current week's data
-└── comparison_report.json    # Week-over-week comparison
+BUCKET_NAME = your-s3-bucket-name
 ```
 
 ---
 
-## 🧠 Data Format
+### **9️⃣ Deploy & Test**
+
+- Trigger Lambda manually or via **EventBridge (weekly)**.  
+- Verify:
+  - `billing_report.json` and `comparison_report.json` in S3.  
+  - Dashboard loads updated data.  
+  - CloudWatch alarm triggers when threshold is exceeded.  
+
+---
+
+## 🧩 Data Structure
 
 ### billing_report.json
-
 ```json
 {
   "Amazon EC2": 12.5,
@@ -133,7 +219,6 @@ my-billing-dashboard/
 ```
 
 ### comparison_report.json
-
 ```json
 {
   "services": {
@@ -142,55 +227,25 @@ my-billing-dashboard/
       "current": 12.5,
       "diff": 2.0,
       "percent_change": 19.05
-    },
-    "Amazon S3": {
-      "previous": 3.5,
-      "current": 3.2,
-      "diff": -0.3,
-      "percent_change": -8.57
     }
   }
 }
 ```
 
 ---
-
-## 🧩 Deployment Steps
-
-### 1️⃣ Create an S3 Bucket
-
-* Enable **Static Website Hosting**
-* Upload:
-
-  * `index.html`
-  * `billing_report.json`
-  * `comparison_report.json`
-
-### 2️⃣ Deploy the Lambda Function
-
-* Add environment variable `BUCKET_NAME`
-* Attach permissions for `ce:GetCostAndUsage` and S3 read/write
-* Schedule it using **EventBridge (weekly)**
-
-### 3️⃣ Access the Dashboard
-
-* Open the S3 bucket’s **Static Website URL** (or distribute via CloudFront).
-
----
-
 ## 🧰 Tech Stack
 
-| Component   | Technology              |
-| ----------- | ----------------------- |
-| Backend     | AWS Lambda (Python 3.x) |
-| Data Source | AWS Cost Explorer       |
-| Storage     | Amazon S3               |
-| Frontend    | HTML, CSS, JavaScript   |
-| Charts      | Chart.js                |
-| Scheduler   | Amazon EventBridge      |
+| Component | Technology |
+|------------|-------------|
+| Backend | AWS Lambda (Python 3.x) |
+| Data Source | AWS Cost Explorer |
+| Storage | Amazon S3 |
+| Frontend | HTML, CSS, JavaScript |
+| Charts | Chart.js |
+| Monitoring | Amazon CloudWatch |
+| Scheduler | Amazon EventBridge |
 
 ---
-
 ## 👩‍💻 Author
 
 **Heloise Viegas**
