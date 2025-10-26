@@ -169,7 +169,8 @@ Create a responsive HTML/JS dashboard (`index.html`) that:
 
 ### **7️⃣ Upload the UI to S3**
 
-Upload the `index.html`, `billing_report.json`, and `comparison_report.json` files to your S3 bucket (with correct MIME types).
+Upload the `index.html` file to your S3 bucket.
+The   `billing_report.json` and  `comparison_report.json` will be uploaded to s3 by the lambda function.
 
 ---
 
@@ -193,6 +194,7 @@ Add environment variable:
 ```
 BUCKET_NAME = your-s3-bucket-name
 ```
+This can be configured in the Lambda configuration settings and accessed as a environment variable in the code.
 
 ---
 
