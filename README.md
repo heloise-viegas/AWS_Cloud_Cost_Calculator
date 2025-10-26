@@ -144,7 +144,7 @@ Now you have a real-time cost visualization + alert display.
 
 ### **5️⃣ Create AWS Lambda Function**
 
-Use your custom script **`custom_billing_lambda.py`** to fetch AWS Cost Explorer data.
+Use the custom script **`custom_billing_lambda.py`** to fetch AWS Cost Explorer data.
 
 **Lambda Responsibilities:**
 - Fetch weekly billing data via `get_cost_and_usage`
