@@ -10,9 +10,9 @@ logger.setLevel(logging.INFO)
 ce=boto3.client('ce')
 s3=boto3.client('s3')
 
-BUCKET_NAME = 'my-billing-dashboard'
-KEY = 'billing_report.json'
-COMPARISON_KEY = 'comparison_report.json'
+BUCKET_NAME = os.environ['BUCKET_NAME']
+KEY = os.environ.get('BILLING_KEY', 'billing_report.json')
+COMPARISON_KEY = os.environ.get('COMPARISON_KEY', 'comparison_report.json')
 
 def lambda_handler(event, context):
 
