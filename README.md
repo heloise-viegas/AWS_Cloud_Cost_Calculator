@@ -6,6 +6,15 @@ This project combines **AWS Lambda**, **CloudWatch**, **S3**, and **Cost Explore
 
 ---
 
+Problem:
+Tracking AWS costs manually is time-consuming and lacks visibility into weekly trends or sudden cost spikes.
+
+System/Solution:
+A serverless AWS Billing Dashboard using Lambda, Cost Explorer, and S3 — automating weekly cost collection, comparison, and visualization with CloudWatch alerts for thresholds.
+
+Result:
+Real-time cost insights, weekly trend comparisons, and proactive alerts help control AWS expenses efficiently and transparently.
+
 ## 🚀 Features
 
 - **Automated Weekly Billing Reports** using AWS Cost Explorer.  
