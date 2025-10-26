@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS Billing Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #0073bb;
+      margin-bottom: 10px;
+    }
+    h1 { font-size: 36px; }
+    h2 { font-size: 24px; margin-top: 40px; }
+    .summary {
+      text-align: center;
+      background: #e8f4fd;
+      border: 1px solid #b3d9f7;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+    #chartContainer {
+      width: 80%;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+    canvas {
+      width: 100% !important;
+      height: 400px !important;
+    }
+    .table-wrapper {
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 20px auto;
+      width: 90%;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      font-size: 14px;
+      table-layout: fixed;
+    }
+    colgroup col:nth-child(1) { width: 70%; }
+    colgroup col:nth-child(2) { width: 30%; }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+      box-sizing: border-box;
+    }
+    th {
+      background-color: #0073bb;
+      color: white;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    tbody tr:hover {
+      background-color: #f1f7fd;
+    }
+    tfoot td {
+      font-weight: bold;
+      background-color: #f1f1f1;
+    }
+    .footer {
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      margin-top: 20px;
+    }
+    /* Extra column widths for comparison table */
+    #comparisonTable colgroup col:nth-child(1) { width: 40%; }
+    #comparisonTable colgroup col:nth-child(2) { width: 20%; }
+    #comparisonTable colgroup col:nth-child(3) { width: 20%; }
+    #comparisonTable colgroup col:nth-child(4) { width: 20%; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>AWS Billing Dashboard</h1>
+
+  <div class="summary">
+    <p><strong>Billing Period:</strong> <span id="period"></span></p>
+    <p><strong>Total Cost:</strong> $<span id="total"></span> USD</p>
+  </div>
+
+  <div id="chartContainer">
+    <canvas id="costChart"></canvas>
+  </div>
+
+  <!-- Current Week Table -->
+  <div class="table-wrapper">
+    <table id="billingTable">
+      <colgroup>
+        <col>
+        <col>
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Cost (USD)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td id="tableTotal">$0.00</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Comparison Table -->
+  <h2>Weekly Comparison</h2>
+  <div class="table-wrapper">
+    <table id="comparisonTable">
+      <colgroup>
+        <col>
+        <col>
+        <col>
+        <col>
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Previous Week</th>
+          <th>Current Week</th>
+          <th>Diff (%)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td id="comparisonPrevTotal">$0.00</td>
+          <td id="comparisonCurrTotal">$0.00</td>
+          <td id="comparisonDiffTotal">0%</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p>Data updated from S3 Billing Report</p>
+  </div>
+
+  <script>
+    async function loadBillingReport() {
+      try {
+        const response = await fetch('billing_report.json');
+        const data = await response.json();
+
+        const services = Object.keys(data).filter(k => k !== 'Total');
+        const costs = Object.values(data).filter((v, i) => i !== services.length);
+        const roundedCosts = costs.map(c => parseFloat(c.toFixed(2)));
+
+        document.getElementById('total').textContent = parseFloat(data.Total.toFixed(2));
+
+        const today = new Date();
+        const lastWeek = new Date(today);
+        lastWeek.setDate(today.getDate() - 7);
+        document.getElementById('period').textContent =
+          `${lastWeek.toISOString().split('T')[0]} → ${today.toISOString().split('T')[0]}`;
+
+        const tbody = document.querySelector('#billingTable tbody');
+        tbody.innerHTML = '';
+        services.forEach((service, i) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${service}</td><td>$${roundedCosts[i]}</td>`;
+          tbody.appendChild(row);
+        });
+
+        document.getElementById('tableTotal').textContent = `$${data.Total.toFixed(2)}`;
+
+        const ctx = document.getElementById('costChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: services,
+            datasets: [{
+              data: roundedCosts,
+              backgroundColor: [
+                '#0073bb', '#36a2eb', '#4bc0c0', '#9966ff',
+                '#ff9f40', '#ff6384', '#66bb6a', '#ba68c8'
+              ],
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { size: 12 } }
+              },
+              title: {
+                display: true,
+                text: 'AWS Cost Breakdown by Service',
+                font: { size: 18 }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Error loading billing data:', err);
+        document.body.innerHTML = '<h3 style="text-align:center;color:red;">Error loading billing report from S3</h3>';
+      }
+    }
+
+    async function loadComparison() {
+      try {
+        const response = await fetch('comparison_report.json');
+        const data = await response.json();
+
+        const tbody = document.querySelector('#comparisonTable tbody');
+        tbody.innerHTML = '';
+
+        let totalPrev = 0, totalCurr = 0;
+
+        Object.entries(data.services).forEach(([service, vals]) => {
+          const prev = vals.previous;
+          const curr = vals.current;
+          totalPrev += prev;
+          totalCurr += curr;
+
+          let percent_change;
+          if (prev === 0 && curr === 0) {
+            percent_change = 0;
+          } else if (prev === 0) {
+            percent_change = 100; // or "New"
+          } else {
+            percent_change = ((curr - prev) / prev) * 100;
+          }
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${service}</td>
+            <td>$${prev.toFixed(2)}</td>
+            <td>$${curr.toFixed(2)}</td>
+            <td style="color:${curr-prev>=0?'green':'red'}">${percent_change.toFixed(2)}%</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // Update footer totals
+        document.getElementById('comparisonPrevTotal').textContent = `$${totalPrev.toFixed(2)}`;
+        document.getElementById('comparisonCurrTotal').textContent = `$${totalCurr.toFixed(2)}`;
+        let totalDiffPercent = totalPrev === 0 ? (totalCurr === 0 ? 0 : 100) : ((totalCurr-totalPrev)/totalPrev*100);
+        document.getElementById('comparisonDiffTotal').textContent = `${totalDiffPercent.toFixed(2)}%`;
+
+      } catch (err) {
+        console.error('Error loading comparison data:', err);
+      }
+    }
+
+    loadBillingReport();
+    loadComparison();
+  </script>
+</body>
+</html>
