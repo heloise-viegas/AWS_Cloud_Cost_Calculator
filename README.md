@@ -194,7 +194,8 @@ Add environment variable:
 ```
 BUCKET_NAME = your-s3-bucket-name
 ```
-This can be configured in the Lambda configuration settings and accessed as a environment variable in the code.
+This can be configured in the Lambda configuration settings and accessed as a environment variable in the code.<img width="1775" height="829" alt="image" src="https://github.com/user-attachments/assets/4f474393-0a3c-4142-bbcd-edf3a212ebcf" />
+
 
 ---
 
