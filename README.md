@@ -214,7 +214,9 @@ This can be configured in the Lambda configuration settings and accessed as a en
 - Verify:
   - `billing_report.json` and `comparison_report.json` in S3.  
   - Dashboard loads updated data.  
-  - CloudWatch alarm triggers when threshold is exceeded.  
+  - CloudWatch alarm triggers when threshold is exceeded.
+    <img width="1519" height="492" alt="image" src="https://github.com/user-attachments/assets/9e622060-1bd4-4713-980f-c64791346863" />
+
 
 ---
 
